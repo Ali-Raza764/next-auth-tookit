@@ -1,37 +1,70 @@
 import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import { SignInWithEmailAndPassword } from "./actions/user.actions";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import {
+  SignInWithEmailAndPassword,
+  SignUpWithEmailAndPassword,
+} from "@/actions/user.actions";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Credentials({
-      // You can specify which fields should be submitted, by adding keys to the `credentials` object.
-      // e.g. domain, username, password, 2FA token, etc.
-      credentials: {
-        email: {},
-        password: {},
-      },
-      authorize: async (credentials) => {
-        let user = null;
-
-        // logic to salt and hash password
-        // const pwHash = saltAndHashPassword(credentials.password);
-
-        // logic to verify if user exists
-        user = await SignInWithEmailAndPassword(
-          credentials.email,
-          credentials.password
-        );
-
+const providers = [
+  Google,
+  GitHub, //! Not using Github provider because It becoms difficult to manage the same email,name from different providers Maybe use only one Oauth Provider Feature will be developed in the future
+  CredentialsProvider({
+    name: "Credentials",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      try {
+        const user = await SignInWithEmailAndPassword(credentials); // Your user verification logic
         if (!user) {
-          // No user found, so this is their first attempt to login
-          // meaning this is also the place you could do registration
-          throw new Error("User not found.");
+          throw new Error("user not found");
         }
+        return user.data;
+      } catch (error) {
+        return null;
+      }
+    },
+  }),
+];
 
-        // return user object with the their profile data
-        return user;
-      },
-    }),
-  ],
+export const providerMap = providers.map((provider) => {
+  if (typeof provider === "function") {
+    const providerData = provider();
+    return { id: providerData.id, name: providerData.name };
+  } else {
+    return { id: provider.id, name: provider.name };
+  }
+});
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  providers,
+  pages: {
+    signIn: "/auth/sign-in",
+  },
+  callbacks: {
+    async signIn({ user, account }) {
+      if (account.provider === "google" || account.provider === "github") {
+        const { name, email, image } = user;
+        try {
+          const user = SignUpWithEmailAndPassword(
+            {
+              name,
+              email,
+              image,
+            },
+            "oauth",
+            account.provider
+          );
+
+          return user;
+        } catch (err) {
+          console.log(err);
+        }
+      }
+      return user;
+    },
+  },
 });

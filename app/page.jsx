@@ -21,7 +21,7 @@ const Home = () => {
           SignUp
         </Link>
         <Link
-          href="/auth/admin"
+          href="/protected"
           className="px-4 p-2 bg-gray-800 hover:bg-gray-700 transition rounded-md text-white"
         >
           Protected
