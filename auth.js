@@ -35,7 +35,6 @@ export const providerMap = providers.map((provider) => {
   }
 });
 
-
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   providers,
   pages: {
@@ -52,26 +51,33 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
           authType: "Oauth",
         };
 
-        await oauthSignIn(payload);
+        const res = await oauthSignIn(payload);
+        user.id = res.data._id.toString();
+        user.isVerified = res.data.isVerified;
+        user.image = res.data.avatar;
 
-        return true;
+        return user;
       }
       // Default to allow sign-in
-      return true;
+      return user;
     },
-    async jwt({ token, user }) {
+    async jwt({ trigger, token, user }) {
       // Add user information to the token during sign-in
+      if (trigger === "update") {
+        token.isVerified = session.user.isVerified;
+      }
       if (user) {
-        token.id = user._id.toString();
+        console.log(user);
+        const id = user._id?.toString() || user.id;
+        token.id = id;
         token.email = user.email;
         token.name = user.name;
         token.isVerified = user.isVerified;
-        token.picture = user.avatar;
+        token.picture = user.avatar || user.image;
       }
       return token;
     },
     async session({ session, token }) {
-      // Add custom properties to the session object
       session.user.id = token.id;
       session.user.email = token.email;
       session.user.name = token.name;

@@ -29,7 +29,11 @@ const getTokenFromDataBase = async (userId) => {
     if (token && expiry) {
       //* Token must not be empty
       const isTokenValid = new Date().getTime() < parseInt(expiry); //* Current time must be less than Token expiry
-      if (isTokenValid) return token; //* If token is valid then return it instantly
+      if (isTokenValid)
+        return {
+          token,
+          emailed: true, //* If token is valid we don't need a new email 
+        }; //* If token is valid then return it instantly
     }
 
     //* If Token is not valid or empty we will create a now one and write it into our database
@@ -39,7 +43,10 @@ const getTokenFromDataBase = async (userId) => {
     user.verificationToken = newToken;
     user.verificationTokenExpiry = newTokenExpiry;
     await user.save();
-    return newToken;
+    return {
+      token: newToken,
+      emailed: false, // If There is a new token a new email must be sent
+    };
   }
 };
 
@@ -50,11 +57,19 @@ const page = async () => {
   }
   const userId = session.user.id;
 
-  const token = await getTokenFromDataBase(userId); //* get the token
-  const link = `http:localhost:3000/api/verifyemail?token=${token}`;
+  const { token, emailed } = await getTokenFromDataBase(userId); //* get the token
+  const link = `http:localhost:3000/auth/verifyEmail?token=${token}`;
   console.log(link);
+
+  if (emailed) {
+    return (
+      <main className="w-full min-h-screen flex items-center justify-center">
+        <h1 className="">Email Sent Successfully</h1>
+        <p>We have sent you your email verification link. Ckeck Your Inbox</p>
+      </main>
+    );
+  }
   const res = await SendVerficationEmail(session?.user?.email, link);
-  console.log(res);
 
   if (res.status === 200) {
     return (
