@@ -4,12 +4,12 @@ import Google from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import {
   SignInWithEmailAndPassword,
-  SignUpWithEmailAndPassword,
-} from "@/actions/user.actions";
+  oauthSignIn,
+} from "@/actions/user/user.actions";
 
 const providers = [
   Google,
-  GitHub, //! Not using Github provider because It becoms difficult to manage the same email,name from different providers Maybe use only one Oauth Provider Feature will be developed in the future
+  GitHub,
   CredentialsProvider({
     name: "Credentials",
     credentials: {
@@ -17,15 +17,11 @@ const providers = [
       password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
-      try {
-        const user = await SignInWithEmailAndPassword(credentials); // Your user verification logic
-        if (!user) {
-          throw new Error("user not found");
-        }
-        return user.data;
-      } catch (error) {
+      const user = await SignInWithEmailAndPassword(credentials); // User verification logic
+      if (user.status === 400) {
         return null;
       }
+      return user.data;
     },
   }),
 ];
@@ -39,7 +35,8 @@ export const providerMap = providers.map((provider) => {
   }
 });
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   providers,
   pages: {
     signIn: "/auth/sign-in",
@@ -48,23 +45,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account }) {
       if (account.provider === "google" || account.provider === "github") {
         const { name, email, image } = user;
-        try {
-          const user = SignUpWithEmailAndPassword(
-            {
-              name,
-              email,
-              image,
-            },
-            "oauth",
-            account.provider
-          );
+        const payload = {
+          name,
+          email,
+          avatar: image,
+          authType: "Oauth",
+        };
 
-          return user;
-        } catch (err) {
-          console.log(err);
-        }
+        await oauthSignIn(payload);
+
+        return true;
       }
-      return user;
+      // Default to allow sign-in
+      return true;
+    },
+    async jwt({ token, user }) {
+      // Add user information to the token during sign-in
+      if (user) {
+        token.id = user._id.toString();
+        token.email = user.email;
+        token.name = user.name;
+        token.isVerified = user.isVerified;
+        token.picture = user.avatar;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      // Add custom properties to the session object
+      session.user.id = token.id;
+      session.user.email = token.email;
+      session.user.name = token.name;
+      session.user.image = token.picture;
+      session.user.isVerified = token.isVerified;
+      return session;
     },
   },
 });

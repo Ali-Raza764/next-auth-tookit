@@ -1,28 +1,25 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    authType: { type: String, required: true },
+    avatar: {
+      type: String,
+      trim: true,
+      default: "https://www.gravatar.com/avatar/50*50",
+    },
+    isVerified: { type: Boolean, default: false },
+    verificationToken: { type: String, default: null },
+    verificationTokenExpiry: { type: String, default: null },
   },
-  email: {
-    type: String,
-    required: true,
-  },
-  password: {
-    type: String,
-  },
-  authType: {
-    type: String, // Credentials or O Auth
-    required: true,
-  },
-  authProvider: {
-    type: String,
-  },
-  avatar: {
-    type: String,
-  },
-});
+  {
+    timestamps: true,
+  }
+);
 
-const User = mongoose.models.user || mongoose.model("user", userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;

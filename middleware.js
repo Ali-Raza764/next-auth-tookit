@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 export async function middleware(req) {
-  const cookies = req.cookies;
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
 
-  if (!cookies.get("authjs.session-token")) {
+  if (!token) {
+    // Redirect to sign-in page if the token is not found
     return NextResponse.redirect(new URL("/auth/signin", req.url));
   }
+
   return NextResponse.next();
 }
 

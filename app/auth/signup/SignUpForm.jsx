@@ -1,5 +1,5 @@
 "use client";
-import { SignUpWithEmailAndPassword } from "@/actions/user.actions";
+import { SignUpWithEmailAndPassword } from "@/actions/user/user.actions";
 import Link from "next/link";
 import Providers from "../components/Providers";
 import { useState } from "react";
@@ -16,11 +16,13 @@ const SignUpForm = () => {
       email: e.target.email.value,
       name: e.target.name.value,
       password: e.target.password.value,
+      authType: "credentials",
     };
     try {
       setLoading(true);
       setError("");
-      const res = await SignUpWithEmailAndPassword(payload, "credentials", "customprovider");
+      const res = await SignUpWithEmailAndPassword(payload);
+      console.log(res);
       if (res.status == 400) {
         setError(res.message);
       }
