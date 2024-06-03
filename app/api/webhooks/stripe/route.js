@@ -18,7 +18,7 @@ export async function POST(req, res) {
       process.env.STRIPE_WEBHOOK_SECRET
     );
 
-    console.log("event", event.type);
+    console.log("event:", event.type, event.data); //checkout.session.completed holds the metadata
 
     return NextResponse.json({
       status: "success",

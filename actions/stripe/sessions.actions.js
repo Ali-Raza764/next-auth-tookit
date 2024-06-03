@@ -6,10 +6,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const createCheckout = async (name, unitPrice, quantity) => {
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
+    metadata: {
+      orderId: "orderId",
+      userid: "userId",
+    },
     line_items: [
       {
         price_data: {
           currency: "usd",
+
           product_data: {
             name: name,
 
